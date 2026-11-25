@@ -178,9 +178,13 @@ export function splitSections(title: string, body: string): Section[] {
   return sections.filter((s) => s.blocks.some((b) => !HEADING.test(b)));
 }
 
-function stripInlineMarkdown(text: string): string {
+/**
+ * Plain text of a heading: link text instead of links, no backticks or `*`
+ * emphasis. Underscores stay, since they are part of API names (`unstable_cache`).
+ */
+export function stripInlineMarkdown(text: string): string {
   return text
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
-    .replace(/[`*_]/g, "")
+    .replace(/[`*]/g, "")
     .trim();
 }
