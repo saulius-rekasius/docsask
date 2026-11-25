@@ -29,6 +29,18 @@ export default function DashboardPage() {
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>
+            <Link href="/evals" className="hover:underline">
+              Evaluation results →
+            </Link>
+          </CardTitle>
+          <CardDescription>
+            How well search finds the right passages on 60 labelled questions, per configuration.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>No conversations yet</CardTitle>
           <CardDescription>
             Chat with cited answers arrives once the Claude API is enabled.

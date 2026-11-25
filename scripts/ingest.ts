@@ -18,7 +18,7 @@ import { join } from "node:path";
 import Anthropic from "@anthropic-ai/sdk";
 import { Pool } from "@neondatabase/serverless";
 import { config } from "dotenv";
-import { and, count, eq, isNull } from "drizzle-orm";
+import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-serverless";
 import pLimit from "p-limit";
 import * as schema from "../lib/db/schema";
@@ -224,6 +224,11 @@ async function main() {
   );
   const limit = pLimit(DOC_CONCURRENCY);
   await Promise.all(docs.map((d) => limit(() => ingestOne(d))));
+  if (stats.ingested > 0) {
+    // Keyword search reads document frequencies from this view (BM25 IDF).
+    // CONCURRENTLY keeps it readable while it refreshes; it needs the unique index.
+    await db.execute(sql`refresh materialized view concurrently chunk_lexeme_stats`);
+  }
   await pool.end();
 
   const seconds = ((Date.now() - started) / 1000).toFixed(0);

@@ -208,14 +208,33 @@ export const evalRunStatus = pgEnum("eval_run_status", [
   "failed",
 ]);
 
+/** Gold label: a document and optionally a heading path (see lib/evals/metrics.ts). */
+export type GoldRef = { path: string; heading?: string; alt?: { path: string; heading?: string }[] };
+
+/** Snapshot of one retrieved chunk, kept so results stay readable after re-ingestion. */
+export type RetrievedSnapshot = {
+  chunkId: string;
+  documentPath: string;
+  headingPath: string;
+  url: string;
+  relevant: boolean;
+  vectorRank?: number;
+  keywordRank?: number;
+  rerankScore?: number;
+};
+
+/** Mirrors lib/evals/dataset.json; upserted by the eval runner on `slug`. */
 export const evalQuestions = pgTable("eval_questions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  slug: text("slug").notNull().unique(),
   question: text("question").notNull(),
-  expectedAnswer: text("expected_answer").notNull(),
-  goldChunkIds: uuid("gold_chunk_ids").array().notNull().default(sql`'{}'`),
+  expectedAnswer: text("expected_answer"),
+  // Section-level labels instead of chunk ids, which change on every re-ingest.
+  gold: jsonb("gold").$type<GoldRef[]>().notNull().default([]),
   category: text("category").notNull(),
   split: evalSplit("split").notNull(),
   createdAt: createdAt(),
+  updatedAt: updatedAt(),
 });
 
 export const evalRuns = pgTable("eval_runs", {
@@ -223,8 +242,12 @@ export const evalRuns = pgTable("eval_runs", {
   configName: text("config_name").notNull(),
   params: jsonb("params").notNull(),
   gitSha: text("git_sha"),
+  split: evalSplit("split"),
   status: evalRunStatus("status").notNull().default("queued"),
+  /** Aggregate metrics, overall and per category, written when the run finishes. */
+  summary: jsonb("summary"),
   createdAt: createdAt(),
+  finishedAt: timestamp("finished_at", { withTimezone: true }),
 });
 
 export const evalResults = pgTable(
@@ -238,9 +261,14 @@ export const evalResults = pgTable(
       .notNull()
       .references(() => evalQuestions.id, { onDelete: "cascade" }),
     retrievedIds: uuid("retrieved_ids").array().notNull().default(sql`'{}'`),
+    retrieved: jsonb("retrieved").$type<RetrievedSnapshot[]>(),
     answer: text("answer"),
     recallAt5: doublePrecision("recall_at_5"),
+    recallAt10: doublePrecision("recall_at_10"),
     mrr: doublePrecision("mrr"),
+    ndcgAt5: doublePrecision("ndcg_at_5"),
+    hitAt1: doublePrecision("hit_at_1"),
+    firstRelevantRank: integer("first_relevant_rank"),
     correctness: doublePrecision("correctness"),
     groundedness: doublePrecision("groundedness"),
     refusalCorrect: boolean("refusal_correct"),

@@ -22,6 +22,27 @@
       "when": 1794755852071,
       "tag": "0002_unique_document_path",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795596921399,
+      "tag": "0003_eval_metrics_drop_chunk_gold",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795596925840,
+      "tag": "0004_eval_section_gold",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795597364190,
+      "tag": "0005_chunk_lexeme_stats",
+      "breakpoints": true
     }
   ]
 }
