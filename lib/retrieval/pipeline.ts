@@ -22,6 +22,8 @@ export interface ChunkRecord {
   context: string | null;
   documentTitle: string;
   documentUrl: string;
+  /** Path of the source file within the docs, e.g. "01-app/02-guides/caching.md". */
+  documentPath: string;
   section: string | null;
 }
 
@@ -41,7 +43,11 @@ export interface RetrievalOptions {
   /** Results returned. */
   topK?: number;
   rerank?: boolean;
+  /** Which first-stage retrievers to run. Both by default (hybrid). */
+  retrievers?: Retriever[];
 }
+
+export type Retriever = "vector" | "keyword";
 
 export interface Hit extends ChunkRecord {
   /** Link to the section on nextjs.org. */
@@ -64,12 +70,20 @@ export interface RetrievalResult {
 export async function retrieve(
   query: string,
   deps: RetrievalDeps,
-  { candidates = 30, rerankCandidates = 20, topK = 6, rerank = true }: RetrievalOptions = {},
+  {
+    candidates = 30,
+    rerankCandidates = 20,
+    topK = 6,
+    rerank = true,
+    retrievers = ["vector", "keyword"],
+  }: RetrievalOptions = {},
 ): Promise<RetrievalResult> {
   const t0 = performance.now();
   const [vectorIds, keywordIds] = await Promise.all([
-    deps.embedQuery(query).then((e) => deps.vectorSearch(e, candidates)),
-    deps.keywordSearch(query, candidates),
+    retrievers.includes("vector")
+      ? deps.embedQuery(query).then((e) => deps.vectorSearch(e, candidates))
+      : Promise.resolve([]),
+    retrievers.includes("keyword") ? deps.keywordSearch(query, candidates) : Promise.resolve([]),
   ]);
   const fused = reciprocalRankFusion([vectorIds, keywordIds]);
   const pool = fused.slice(0, rerank ? rerankCandidates : topK);
@@ -130,6 +144,6 @@ export function slugify(heading: string): string {
   return heading
     .toLowerCase()
     .trim()
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    .replace(/[^\p{L}\p{N}\s_-]/gu, "")
     .replace(/\s/g, "-");
 }

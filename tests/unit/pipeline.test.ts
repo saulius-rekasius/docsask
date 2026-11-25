@@ -8,6 +8,7 @@ const record = (id: string, headingPath = `Doc › ${id}`): ChunkRecord => ({
   context: null,
   documentTitle: "Doc",
   documentUrl: "https://nextjs.org/docs/app/doc",
+  documentPath: "01-app/doc.md",
   section: "Guides",
 });
 
@@ -96,7 +97,25 @@ describe("slugify", () => {
     ["Cache lifetimes", "cache-lifetimes"],
     ["How `use cache: remote` differs", "how-use-cache-remote-differs"],
     ["Step 1: Install", "step-1-install"],
+    ["Not available in `unstable_cache`", "not-available-in-unstable_cache"],
   ])("%s → %s", (heading, slug) => {
     expect(slugify(heading)).toBe(slug);
+  });
+});
+
+describe("retrieve with a single retriever", () => {
+  it("runs only vector search when asked", async () => {
+    const d = deps();
+    const { hits } = await retrieve("q", d, { retrievers: ["vector"], rerank: false });
+    expect(d.keywordSearch).not.toHaveBeenCalled();
+    expect(hits.map((h) => h.id)).toEqual(["a", "b", "c"]);
+    expect(hits.every((h) => h.keywordRank === undefined)).toBe(true);
+  });
+
+  it("runs only keyword search, without embedding the query", async () => {
+    const d = deps();
+    const { hits } = await retrieve("q", d, { retrievers: ["keyword"], rerank: false });
+    expect(d.embedQuery).not.toHaveBeenCalled();
+    expect(hits.map((h) => h.id)).toEqual(["c", "d"]);
   });
 });

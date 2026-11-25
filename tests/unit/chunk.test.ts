@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkDocument, estimateTokens, splitSections, splitTable } from "@/lib/ingest/chunk";
+import { chunkDocument, estimateTokens, splitSections, splitTable, stripInlineMarkdown } from "@/lib/ingest/chunk";
 
 const words = (n: number) => Array.from({ length: n }, (_, i) => `word${i}`).join(" ");
 
@@ -95,5 +95,12 @@ describe("estimateTokens", () => {
   it("is roughly chars / 3.5, rounded up", () => {
     expect(estimateTokens("")).toBe(0);
     expect(estimateTokens("abcdefg")).toBe(2);
+  });
+});
+
+describe("stripInlineMarkdown", () => {
+  it("keeps underscores that belong to API names", () => {
+    expect(stripInlineMarkdown("Not available in `unstable_cache`")).toBe("Not available in unstable_cache");
+    expect(stripInlineMarkdown("**Bold** and [`experimental_ppr`](/docs/x)")).toBe("Bold and experimental_ppr");
   });
 });

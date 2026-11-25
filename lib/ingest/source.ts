@@ -8,6 +8,12 @@ import { join, relative, sep } from "node:path";
  */
 export const DOCS_ROOT = join(process.cwd(), "node_modules", "next", "dist", "docs");
 
+/**
+ * Part of every document's checksum. Bump it when parsing or chunking changes,
+ * so the next ingest re-processes documents whose files did not change.
+ */
+export const PIPELINE_VERSION = 2;
+
 /** App Router docs plus the router-independent sections. Pages Router is legacy. */
 const INCLUDED_TOP_LEVEL = ["01-app", "03-architecture", "04-community"];
 
@@ -30,7 +36,8 @@ export async function listSourceFiles(root = DOCS_ROOT): Promise<SourceFile[]> {
       files.push({
         path,
         raw,
-        checksum: createHash("sha256").update(raw).digest("hex"),
+        checksum: createHash("sha256").update(`pipeline:${PIPELINE_VERSION}
+`).update(raw).digest("hex"),
         url: docsUrl(path),
         section: sectionOf(path),
       });
